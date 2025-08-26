@@ -158,7 +158,14 @@ main_pipeline = (
 )
 
 # --- 5. FASTAPI WEB SERVER (No changes needed here) ---
-
+origins = [
+    # For local testing
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    
+    # For your live website
+    "https://my-ecommerce-store.onrender.com", # <-- This is your REAL frontend URL
+]
 app = FastAPI(title="Supabase E-commerce Chatbot API")
 app.add_middleware(
     CORSMiddleware,
@@ -192,4 +199,4 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("bot1:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("bot:app", host="0.0.0.0", port=8000, reload=True)
