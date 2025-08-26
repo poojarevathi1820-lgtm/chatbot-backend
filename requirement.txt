@@ -1,0 +1,20 @@
+flask
+flask-cors
+gunicorn
+python -dotenv
+# Web Server
+fastapi
+uvicorn
+
+# Environment Variables
+python-dotenv
+
+# Supabase Database Client
+supabase
+
+# LangChain Core & Google Generative AI
+langchain-core
+langchain-google-genai
+
+# Pydantic for data validation
+pydantic

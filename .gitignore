@@ -1,0 +1,10 @@
+# Environment variables
+.env
+
+# Python virtual environment
+.venv/
+
+# Node.js dependencies
+node_modules/
+
+# The problem line has been deleted
