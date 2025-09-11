@@ -18,7 +18,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # --- STATIC DATA ---
-
 FAQS = {
     "best material": "The best material depends on your needs. TPU and silicone offer flexibility and grip, polycarbonate is very durable, and leather is stylish.",
     "protect from drops": "Yes, our cases are designed to protect your phone from everyday bumps and drops. Rugged and shockproof models offer the highest protection.",
@@ -27,7 +26,6 @@ FAQS = {
     "yellow case": "Yellowing is due to UV and skin oils. Cleaning with baking soda may help, but regular cleaning is best to prevent it.",
     "warranty": "We offer a one-year warranty covering manufacturing defects. Contact support with proof of purchase for claims."
 }
-
 FAQ_KEYWORDS = {
     "material": "best material",
     "drop": "protect from drops",
@@ -38,7 +36,6 @@ FAQ_KEYWORDS = {
     "yellow": "yellow case",
     "warranty": "warranty"
 }
-
 FAQ_PHRASES = [
     ("best material", ["best material", "what material", "which material"]),
     ("protect from drops", ["protect from drops", "drop protection", "protect my phone", "shockproof"]),
@@ -49,24 +46,16 @@ FAQ_PHRASES = [
 ]
 
 # --- INTENT DETECTION ---
-
 def detect_static_intent(message: str) -> Optional[str]:
     msg = message.lower().strip()
     tokens = set(re.findall(r'\w+', msg))
 
     # Top selling detection
     top_selling_patterns = [
-        r"\btop selling\b",
-        r"\bbest sellers\b",
-        r"\bmost popular\b",
-        r"\bpopular cases\b",
-        r"\bbest selling\b",
-        r"\bshow me top selling\b",
-        r"\bsee top selling\b",
-        r"\bany top selling\b",
-        r"\bcan i see top selling\b",
-        r"\bdo you have top selling\b",
-        r"\bwhat are your top selling\b"
+        r"\btop selling\b", r"\bbest sellers\b", r"\bmost popular\b",
+        r"\bpopular cases\b", r"\bbest selling\b", r"\bshow me top selling\b",
+        r"\bsee top selling\b", r"\bany top selling\b", r"\bcan i see top selling\b",
+        r"\bdo you have top selling\b", r"\bwhat are your top selling\b"
     ]
     for pattern in top_selling_patterns:
         if re.search(pattern, msg):
@@ -80,17 +69,10 @@ def detect_static_intent(message: str) -> Optional[str]:
 
     # New arrivals detection
     new_arrivals_patterns = [
-        r"\bnew arrivals\b",
-        r"\bjust arrived\b",
-        r"\bnew cases\b",
-        r"\blatest arrivals\b",
-        r"\blatest cases\b",
-        r"\bshow me new arrivals\b",
-        r"\bsee new arrivals\b",
-        r"\bany new arrivals\b",
-        r"\bcan i see new arrivals\b",
-        r"\bdo you have new arrivals\b",
-        r"\bwhat are your new arrivals\b"
+        r"\bnew arrivals\b", r"\bjust arrived\b", r"\bnew cases\b",
+        r"\blatest arrivals\b", r"\blatest cases\b", r"\bshow me new arrivals\b",
+        r"\bsee new arrivals\b", r"\bany new arrivals\b", r"\bcan i see new arrivals\b",
+        r"\bdo you have new arrivals\b", r"\bwhat are your new arrivals\b"
     ]
     for pattern in new_arrivals_patterns:
         if re.search(pattern, msg):
@@ -110,7 +92,6 @@ def detect_static_intent(message: str) -> Optional[str]:
     for keyword in FAQ_KEYWORDS:
         if keyword in tokens or keyword + "s" in tokens:
             return "faq"
-
     return None
 
 def match_faq(user_message: str) -> Optional[str]:
@@ -157,8 +138,6 @@ def format_top_selling(results_json: str) -> str:
 def format_new_arrivals(results_json: str) -> str:
     try:
         results = json.loads(results_json)
-        # Debugging: print the parsed results
-        print("Formatted New Arrivals Results:", results)
         if "error" in results or not results:
             return "<p>Sorry, I couldn't find any new arrivals. Please check back soon!</p>"
         results_to_display = results[:3]
@@ -187,13 +166,13 @@ def format_new_arrivals(results_json: str) -> str:
         return "".join(html_responses)
     except json.JSONDecodeError:
         return "<p>Error: I had trouble processing the new arrivals data.</p>"
-    
+
 def format_search_results(results_json: str) -> str:
     try:
         results = json.loads(results_json)
         if "error" in results or not results:
             return "<p>Sorry, I couldn't find any cases matching your search. Please try another model!</p>"
-        results_to_display = results[:8]
+        results_to_display = results[:3]
         html_responses = [
             "<h3>Here are the top results I found:</h3><div style='display:flex;flex-wrap:wrap;gap:16px;'>"
         ]
@@ -231,49 +210,29 @@ def parse_brand_model(extracted: str) -> dict:
             model = part.split(':', 1)[1].strip()
     return {'brand': brand, 'model': model}
 
-
-def faq_how_to_order():
-    return (
-        "<b>How to order a phone case:</b><br>"
-        "1. Search for your phone model or browse categories.<br>"
-        "2. Select your preferred case and click 'Add to Cart' or 'Buy now'.<br>"
-        "3. Review your cart and click 'Checkout'.<br>"
-        "4. Enter shipping and payment details.<br>"
-        "5. click place order"
-        "If you need help, contact our support team!"
-    )
-
-# Code Generated by Sidekick is for learning and experimentation purposes only.
+# --- DATABASE QUERY FUNCTIONS ---
 def search_cases_in_supabase(brand: str = "", model: str = "") -> str:
     try:
         query = supabase.table("cases").select(
             "id, name, model, brand, color, material, image_url, cost"
         )
-
         brand = brand.strip().lower()
         model = model.strip().lower()
-
         if brand and model:
-            # Both brand and model provided: match both
             query = query.ilike("brand", f"%{brand}%").ilike("model", f"%{model}%")
         elif brand:
-            # Only brand provided: search brand OR model
             query = query.or_(
                 f"brand.ilike.%{brand}%,model.ilike.%{brand}%"
             )
         elif model:
-            # Only model provided: search brand OR model
             query = query.or_(
                 f"brand.ilike.%{model}%,model.ilike.%{model}%"
             )
         else:
             return json.dumps([])
-
         query = query.limit(10)
         response = query.execute()
-        print(json.dumps(response.data, indent=2))
         return json.dumps(response.data) if response.data else json.dumps([])
-
     except Exception as e:
         print(f"!!! DATABASE ERROR: {e} !!!")
         return json.dumps({"error": "Failed to query the database."})
@@ -284,13 +243,11 @@ def search_new_arrivals_in_supabase() -> str:
             "name,model,cost,id,image_url,arrived_date"
         ).order("arrived_date", desc=True).limit(10)
         response = query.execute()
-        # Debugging: print the raw response
-      #  print("New Arrivals Query Response:", response.data)
         return json.dumps(response.data) if response.data else json.dumps([])
     except Exception as e:
         print(f"!!! DATABASE ERROR: {e} !!!")
         return json.dumps({"error": "Failed to query the database."})
-    
+
 def search_top_selling_in_supabase() -> str:
     try:
         query = supabase.table("top_selling").select(
@@ -301,98 +258,8 @@ def search_top_selling_in_supabase() -> str:
     except Exception as e:
         print(f"!!! DATABASE ERROR: {e} !!!")
         return json.dumps({"error": "Failed to query the database."})
-# Code Generated by Sidekick is for learning and experimentation purposes only.
-def search_iphone_cases(brand: str = "iphone", model: str = "") -> str:
-    try:
-        query = supabase.table("cases").select(
-            "id, name, model, brand, color, material, image_url, cost"
-        )
-
-        brand = brand.strip().lower()
-        model = model.strip().lower()
-
-        if brand and model:
-            # Both brand and model provided: match both (AND)
-            query = query.ilike("brand", f"%{brand}%").eq("model", model)
-        elif model:
-            # Only model provided: exact match on model
-            query = query.eq("model", model)
-        elif brand:
-            # Only brand provided: match brand OR model
-            query = query.or_(
-                f"brand.ilike.%{brand}%,model.ilike.%{brand}%"
-            )
-        else:
-            return json.dumps([])
-
-        query = query.limit(10)
-        response = query.execute()
-        print(json.dumps(response.data, indent=2))
-        return json.dumps(response.data) if response.data else json.dumps([])
-
-    except Exception as e:
-        print(f"!!! DATABASE ERROR: {e} !!!")
-        return json.dumps({"error": "Failed to query the database."})
-
-def format_iphone_cases(results_json: str) -> str:
-    try:
-        results = json.loads(results_json)
-
-        if "error" in results or not results:
-            return "<p>Sorry, I couldn't find any iPhone cases matching your search. Please try another model!</p>"
-
-        results_to_display = results[:10]
-
-        html_responses = [
-            "<h3>Here are the top iPhone cases I found:</h3><div style='display:flex;flex-wrap:wrap;gap:16px;'>"
-        ]
-
-        for case in results_to_display:
-            case_id = case.get('id', '')
-            name = case.get('name', 'N/A')
-            model = case.get('model', 'N/A')
-            cost = case.get('cost', 'N/A')
-            image_url = case.get('image_url', '')
-
-            response_html = (
-                f"<div style='width:150px;text-align:center;'>"
-                f'<a href="product.html?id={case_id}" target="_blank" title="View Details for {name}">'
-                f"<img src='{image_url}' alt='{name}' style='width:100%;border-radius:8px;cursor:pointer;'/>"
-                f"</a>"
-                f"<div style='margin-top:8px;font-weight:bold;'>{name}</div>"
-                f"<div style='margin-top:4px;'>Model: {model}</div>"
-                f"<div style='margin-top:4px;'>₹{cost}</div>"
-                f"</div>"
-            )
-
-            html_responses.append(response_html)
-
-        html_responses.append("</div>")
-
-        if len(results) > 3:
-            see_more_link = "<p style='text-align:center; margin-top: 20px;'><a href='cases.html?brand=iphone' target='_blank'>See More iPhone Cases</a></p>"
-            html_responses.append(see_more_link)
-
-        return "".join(html_responses)
-
-    except json.JSONDecodeError:
-        return "<p>Error: I had trouble processing the iPhone case results.</p>"
 
 # --- INITIALIZATION AND CONFIGURATION ---
-# Code Generated by Sidekick is for learning and experimentation purposes only.
-def fetch_order_history(user_id):
-    response = supabase.table("orders").select("user_id,items,total_cost,status").eq("user_id", user_id).execute()
-    return response.data if hasattr(response, 'data') else response
-# Code Generated by Sidekick is for learning and experimentation purposes only.
-def format_order_history(orders):
-    if not orders:
-        return "<p>No order history found for your account.</p>"
-    html = "<b>Your Order History:</b><br><table border='1'><tr><th>User ID</th><th>Items</th><th>Total Cost</th><th>Status</th></tr>"
-    for order in orders:
-        html += f"<tr><td>{order['user_id']}</td><td>{order['items']}</td><td>{order['total_cost']}</td><td>{order['status']}</td></tr>"
-    html += "</table>"
-    return html
-
 load_dotenv()
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
@@ -409,7 +276,6 @@ except Exception as e:
     exit()
 
 # --- API DATA SCHEMAS ---
-
 class ChatRequest(BaseModel):
     session_id: str
     message: str
@@ -418,7 +284,6 @@ class ChatResponse(BaseModel):
     reply: str
 
 # --- LANGCHAIN PIPELINE ---
-
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0.0)
 
 keyword_extraction_chain = (
@@ -457,7 +322,6 @@ main_pipeline = (
 )
 
 # --- FASTAPI WEB SERVER ---
-
 app = FastAPI(title="Supabase E-commerce Chatbot API")
 app.add_middleware(
     CORSMiddleware,
@@ -480,81 +344,44 @@ async def get_product(product_id: str):
         return response.data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-
 # Code Generated by Sidekick is for learning and experimentation purposes only.
 @app.post("/chat", response_model=ChatResponse, summary="Handle Chat Messages")
 async def chat(request: ChatRequest):
     print(f"Received message: '{request.message}'")
     try:
-        user_message = request.message.lower()
-        if any(phrase in user_message for phrase in [
-            "order history", "my orders", "show my orders", "my order history"
-        ]):
-            print("Bot intent: Fetch order history")
-            user_id = getattr(request, "user_id", None)
-            if not user_id:
-                return ChatResponse(reply="<p>User ID not found. Please log in to view your order history.</p>")
-            orders = fetch_order_history(user_id)
-            return ChatResponse(reply=format_order_history(orders))
-
-        if any(phrase in user_message for phrase in [
-            "how to order", "order a case", "order phone case", "buy a case", "purchase a case", "how do i order"
-        ]):
-            print("Bot intent: FAQ (how to order)")
-            return ChatResponse(reply=faq_how_to_order())
-
         static_intent = detect_static_intent(request.message)
 
+        # Top selling cases
         if static_intent == "top_selling":
-            print("Bot intent: DB search (top_selling)")
-            print("searching ...")
             results_json = search_top_selling_in_supabase()
             return ChatResponse(reply=format_top_selling(results_json))
 
+        # New arrivals
         if static_intent == "new_arrivals":
-            print("Bot intent: DB search (new_arrivals)")
-            print("searching ...")
             results_json = search_new_arrivals_in_supabase()
             return ChatResponse(reply=format_new_arrivals(results_json))
 
+        # FAQ
         if static_intent == "faq":
-            print("Bot intent: General answer (FAQ)")
             faq_answer = match_faq(request.message)
             if faq_answer:
                 return ChatResponse(reply=faq_answer)
-            # If intent is FAQ but no match, fallback to LLM
+            # If intent is FAQ but no answer found, continue to LLM
 
-        # Handle iPhone case search (brand or model contains "iphone")
-        if "iphone" in request.message.lower():
-            print("Bot intent: DB search (iphone)")
-            print("searching ...")
-            results_json = search_iphone_cases()
-            return ChatResponse(reply=format_iphone_cases(results_json))
+        # Dynamic brand/model search using LLM extraction
+        extraction = keyword_extraction_chain.invoke({"message": request.message})
+        entities = parse_brand_model(extraction)
+        brand = entities.get("brand", "")
+        model = entities.get("model", "")
 
-        # If no static intent or iPhone search, use LLM pipeline
+        if brand or model:
+            results_json = search_cases_in_supabase(brand=brand, model=model)
+            return ChatResponse(reply=format_search_results(results_json))
+
+        # Fallback: Use LLM pipeline for general chat or unknown queries
         pipeline_response = main_pipeline.invoke({"message": request.message})
-
-        # Optional: classify and log intent for analytics
-        intent_classifier = (
-            ChatPromptTemplate.from_template(
-                "Classify intent as 'product_search' or 'general_chat'. Message: {message}"
-            ) | llm | StrOutputParser()
-        )
-        intent = intent_classifier.invoke({"message": request.message})
-
-        if "product_search" in intent:
-            print("Bot intent: DB search (product_search)")
-            print("searching ...")
-        else:
-            print("Bot intent: General answer (chat)")
-
         return ChatResponse(reply=pipeline_response)
 
     except Exception as e:
         print(f"Error during pipeline invocation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    uvicorn.run("check:app", host="0.0.0.0", port=8000, reload=True)
