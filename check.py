@@ -406,7 +406,7 @@ def format_order_history(orders):
                 html += (
                     f"  <b>name:</b> {item.get('name', 'N/A')}<br>"
                     f"  <b>Brand:</b> {item.get('brand', 'N/A')}<br>"
-                    f"  <b>Cost:</b> ${item.get('cost', 'N/A')}<br>"
+                    f"  <b>Cost:</b> {item.get('cost', 'N/A')}<br>"
                 )
         html += f"<b>Status:</b> {order.get('status', 'N/A')}<br>"
         html += "</p>"
